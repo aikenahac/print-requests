@@ -1,0 +1,10 @@
+node_modules
+.next
+.git
+.env
+data
+*.db
+*.db-shm
+*.db-wal
+tests
+README.md

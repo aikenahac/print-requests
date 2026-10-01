@@ -17,6 +17,24 @@ Keep both the SQLite file and `UPLOAD_DIR` on persistent disk. Back up both toge
 
 Run behind a reverse proxy that passes the intended public host to the app. Auth.js trusts that host when forming authentication URLs.
 
+## Deploying on Dokploy
+
+Create a Dokploy Application connected to this repository and set its build type to **Dockerfile**. The included `Dockerfile` runs `bun run db:migrate` before `next start`.
+
+Add one persistent volume mounted at `/app/data`. The database and filament photos are both stored there. Dokploy recommends persistent volumes for application data and supports volume backups; do not run this app without that mount.
+
+Set these application environment variables in Dokploy:
+
+```text
+DB_FILE_NAME=file:/app/data/local.db
+UPLOAD_DIR=/app/data/uploads
+AUTH_SECRET=<long random secret>
+```
+
+Expose container port `3000`, attach your domain, and enable HTTPS through Dokploy. Deploy once, then open `/setup` and claim the first admin account before sharing the URL. Keep the app at one replica because SQLite is a local file database.
+
+For upgrades, deploy the new image with the same `/app/data` volume. The startup migration is safe to run on every deploy. Back up the volume before schema changes or other maintenance.
+
 ## Checks
 
 Run `bun run lint`, `bun run typecheck`, and `bun run build`.
