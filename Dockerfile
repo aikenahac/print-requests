@@ -4,12 +4,14 @@ WORKDIR /app
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
 
-FROM dependencies AS builder
+FROM node:22-alpine AS builder
 
+WORKDIR /app
+COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
-RUN bun run build
+RUN DB_FILE_NAME=file:/tmp/print-requests-build.db node ./node_modules/next/dist/bin/next build --webpack
 
-FROM oven/bun:1.2-alpine AS runner
+FROM node:22-alpine AS runner
 
 WORKDIR /app
 ENV NODE_ENV=production
@@ -29,4 +31,4 @@ RUN mkdir -p /app/data/uploads
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "bun run db:migrate && exec bun run start"]
+CMD ["sh", "-c", "node ./node_modules/drizzle-kit/bin.cjs migrate && exec node ./node_modules/next/dist/bin/next start -H 0.0.0.0 -p 3000"]
