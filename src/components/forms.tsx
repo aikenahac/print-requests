@@ -27,6 +27,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 function Submit({ children }: { children: React.ReactNode }) {
   const { pending } = useFormStatus();
@@ -305,6 +306,7 @@ export function RequestForm({
     initial?.filamentChoices.map((f) => f.filamentId) ?? [],
   );
   const [urgent, setUrgent] = useState(initial?.urgent ?? false);
+
   return (
     <form action={action} className="space-y-7">
       {initial && <Input type="hidden" name="requestId" value={initial.id} />}
@@ -359,34 +361,48 @@ export function RequestForm({
         </div>
         <div className="grid gap-2 sm:grid-cols-2">
           {filaments.map((filament) => (
-            <label
-              key={filament.id}
-              className="flex cursor-pointer items-center gap-3 border p-3 text-sm"
-            >
-              <Checkbox
-                name="filamentIds"
-                value={filament.id}
-                defaultChecked={selected.includes(filament.id)}
-                onCheckedChange={(checked) =>
-                  setSelected((old) =>
-                    checked
-                      ? [...old, filament.id]
-                      : old.filter((id) => id !== filament.id),
-                  )
-                }
-              />
-              {filament.imagePath && (
+            <Tooltip key={filament.id}>
+              <TooltipTrigger render={
+                <button
+                  className="flex cursor-pointer items-center gap-3 border p-3 text-sm"
+                >
+                  <Checkbox
+                    name="filamentIds"
+                    value={filament.id}
+                    defaultChecked={selected.includes(filament.id)}
+                    onCheckedChange={(checked) =>
+                      setSelected((old) =>
+                        checked
+                          ? [...old, filament.id]
+                          : old.filter((id) => id !== filament.id),
+                      )
+                    }
+                  />
+                  {filament.imagePath && (
+                    <Image
+                      src={`/api/filament-images/${filament.imagePath}`}
+                      alt=""
+                      width={48}
+                      height={48}
+                      unoptimized
+                      className="size-12 border object-cover"
+                    />
+                  )}
+                  <span>{filament.name}</span>
+                </button>
+              }>
+              </TooltipTrigger>
+              <TooltipContent>
                 <Image
                   src={`/api/filament-images/${filament.imagePath}`}
                   alt=""
-                  width={48}
-                  height={48}
+                  width={512}
+                  height={512}
                   unoptimized
-                  className="size-12 border object-cover"
+                  className="border object-cover"
                 />
-              )}
-              <span>{filament.name}</span>
-            </label>
+              </TooltipContent>
+            </Tooltip>
           ))}
         </div>
         {selected.length > 1 && (

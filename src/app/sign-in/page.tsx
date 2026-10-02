@@ -9,9 +9,12 @@ import { users } from "@/db/schema";
 export default async function SignInPage() {
   await connection();
   const [row] = await db.select({ count: count() }).from(users);
+
   if (row.count === 0) redirect("/setup");
+
   const actor = await getActor();
-  if (actor)
+
+  if (actor) {
     redirect(
       actor.mustChangePassword
         ? "/change-password"
@@ -19,6 +22,8 @@ export default async function SignInPage() {
           ? "/admin"
           : "/",
     );
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/30 p-5">
       <AuthForm mode="login" />

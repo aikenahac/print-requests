@@ -20,7 +20,9 @@ function sameOrigin(request: Request) {
   const origin = request.headers.get("origin");
   const host =
     request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+
   if (!origin || !host) return false;
+
   try {
     const protocol =
       request.headers.get("x-forwarded-proto") ??
@@ -33,9 +35,12 @@ function sameOrigin(request: Request) {
 
 async function limitedFormData(request: Request) {
   const type = request.headers.get("content-type");
+
   if (!type?.toLowerCase().startsWith("multipart/form-data;"))
     return { error: errorResponse("Expected a multipart form upload.", 415) };
+
   const length = Number(request.headers.get("content-length"));
+
   if (Number.isFinite(length) && length > MAX_BODY_SIZE)
     return {
       error: errorResponse(
@@ -43,6 +48,7 @@ async function limitedFormData(request: Request) {
         413,
       ),
     };
+
   if (!request.body) return { error: errorResponse("Upload is empty.", 400) };
 
   try {
@@ -65,6 +71,7 @@ async function limitedFormData(request: Request) {
       chunks.push(value);
     }
     const body = Buffer.concat(chunks, size);
+
     return {
       form: await new Request(request.url, {
         method: "POST",
@@ -81,31 +88,42 @@ async function limitedFormData(request: Request) {
 
 export async function POST(request: Request) {
   const actor = await getActor();
+
   if (!actor) return errorResponse("Sign in to upload a filament.", 401);
+
   if (actor.role !== "admin" || actor.mustChangePassword)
     return errorResponse("Only an admin can save filaments.", 403);
+
   if (!sameOrigin(request))
     return errorResponse("Invalid request origin.", 403);
 
   const parsed = await limitedFormData(request);
+
   if (parsed.error) return parsed.error;
+
   const form = parsed.form!;
   const nameValue = form.get("name");
   const name = typeof nameValue === "string" ? nameValue.trim() : "";
   const idValue = form.get("filamentId");
   const id = typeof idValue === "string" ? idValue : "";
   const file = form.get("image");
-  if (name.length < 2 || name.length > 80)
+
+  if (name.length < 2 || name.length > 80) {
     return errorResponse("Filament name must be 2–80 characters.", 400);
-  if (file !== null && !(file instanceof File))
+  }
+
+  if (file !== null && !(file instanceof File)) {
     return errorResponse("Upload a PNG, JPEG, or WebP image.", 400);
+  }
 
   const [existing] = id
     ? await db.select().from(filaments).where(eq(filaments.id, id)).limit(1)
     : [];
+
   if (id && !existing) return errorResponse("Filament was not found.", 404);
 
   let imagePath: string | null = null;
+
   try {
     if (file instanceof File) imagePath = await saveFilamentImage(file);
   } catch (error) {
@@ -118,6 +136,7 @@ export async function POST(request: Request) {
     ) {
       return errorResponse(error.message, 400);
     }
+
     return errorResponse("Could not save the image. Please try again.", 500);
   }
 
@@ -132,24 +151,24 @@ export async function POST(request: Request) {
         })
         .where(eq(filaments.id, id));
     } else {
-      await db
-        .insert(filaments)
-        .values({
-          id: randomUUID(),
-          name,
-          imagePath,
-          available: true,
-          createdAt: new Date(),
-        });
+      await db.insert(filaments).values({
+        id: randomUUID(),
+        name,
+        imagePath,
+        available: true,
+        createdAt: new Date(),
+      });
     }
   } catch {
-    if (imagePath)
+    if (imagePath) {
       await unlink(
         path.join(
           path.resolve(process.env.UPLOAD_DIR ?? "./data/uploads"),
           imagePath,
         ),
       ).catch(() => {});
+    }
+
     return errorResponse("Could not save the filament. Please try again.", 500);
   }
 

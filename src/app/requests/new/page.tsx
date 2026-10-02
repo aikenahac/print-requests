@@ -7,6 +7,7 @@ import { listFilaments } from "@/lib/queries";
 export default async function NewRequestPage() {
   const actor = await requireUser();
   const filaments = (await listFilaments()).filter((f) => f.available);
+
   return (
     <AppShell username={actor.username} admin={actor.role === "admin"}>
       <div className="mx-auto max-w-3xl space-y-6">

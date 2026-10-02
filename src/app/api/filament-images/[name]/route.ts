@@ -12,16 +12,22 @@ export async function GET(
   { params }: { params: Promise<{ name: string }> },
 ) {
   const actor = await getActor();
+
   if (!actor) return new Response("Unauthorized", { status: 401 });
+
   const { name } = await params;
+
   if (!/^[0-9a-f-]{36}\.(png|jpg|webp)$/.test(name))
     return new Response("Not found", { status: 404 });
+
   const [filament] = await db
     .select({ id: filaments.id })
     .from(filaments)
     .where(eq(filaments.imagePath, name))
     .limit(1);
+
   if (!filament) return new Response("Not found", { status: 404 });
+
   try {
     const bytes = await readFile(
       path.join(path.resolve(process.env.UPLOAD_DIR ?? "./data/uploads"), name),
@@ -31,6 +37,7 @@ export async function GET(
       : name.endsWith(".webp")
         ? "image/webp"
         : "image/jpeg";
+
     return new Response(bytes, {
       headers: {
         "Content-Type": type,

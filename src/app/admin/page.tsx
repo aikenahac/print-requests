@@ -15,6 +15,7 @@ export default async function AdminPage() {
   const history = all.filter((r) =>
     ["completed", "cancelled", "rejected"].includes(r.status),
   );
+
   return (
     <AppShell username={actor.username} admin>
       <div className="space-y-9">

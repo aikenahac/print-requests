@@ -26,15 +26,20 @@ export default async function EditRequestPage({
       ),
     )
     .limit(1);
+
   if (!request) notFound();
+
   const all = await listRequests(actor.id);
   const current = all.find((r) => r.id === id);
+
   if (!current) notFound();
+
   const filaments = (await listFilaments()).filter(
     (f) =>
       f.available ||
       current.filamentChoices.some((choice) => choice.filamentId === f.id),
   );
+
   return (
     <AppShell username={actor.username} admin={false}>
       <div className="mx-auto max-w-3xl space-y-6">

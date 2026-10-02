@@ -8,7 +8,9 @@ import { AuthForm } from "@/components/forms";
 export default async function SetupPage() {
   await connection();
   const [row] = await db.select({ count: count() }).from(users);
+
   if (row.count > 0) redirect("/sign-in");
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/30 p-5">
       <AuthForm mode="setup" />
