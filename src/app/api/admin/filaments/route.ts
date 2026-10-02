@@ -53,7 +53,7 @@ async function limitedFormData(request: Request) {
 
   try {
     const reader = request.body.getReader();
-    const chunks: Uint8Array[] = [];
+    const chunks: Array<Uint8Array> = [];
     let size = 0;
     while (true) {
       const { done, value } = await reader.read();

@@ -25,7 +25,7 @@ export type RequestView = {
   status: RequestStatus;
   queuePosition: number | null;
   createdAt: Date;
-  filamentChoices: { filamentId: string; name: string }[];
+  filamentChoices: Array<{ filamentId: string; name: string }>;
 };
 
 const statusLabel: Record<RequestStatus, string> = {

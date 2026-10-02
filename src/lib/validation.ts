@@ -28,7 +28,7 @@ export type RequestInput = {
   urgent: boolean;
   urgentReason: string | null;
   amsConfirmed: boolean;
-  filamentIds: string[];
+  filamentIds: Array<string>;
 };
 
 export function parseRequestForm(form: FormData): RequestInput | string {

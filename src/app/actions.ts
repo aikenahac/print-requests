@@ -155,7 +155,7 @@ export async function resetUserPassword(
   };
 }
 
-async function checkFilaments(ids: string[], existingRequestId?: string) {
+async function checkFilaments(ids: Array<string>, existingRequestId?: string) {
   const available = await db
     .select({ id: filaments.id })
     .from(filaments)

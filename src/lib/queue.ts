@@ -147,7 +147,7 @@ export async function transitionQueuedRequest(
   id: string,
   target: RequestStatus,
 ) {
-  const allowed: Partial<Record<RequestStatus, RequestStatus[]>> = {
+  const allowed: Partial<Record<RequestStatus, Array<RequestStatus>>> = {
     queued: ["printing", "rejected"],
     printing: ["ready"],
     ready: ["completed"],

@@ -26,7 +26,7 @@ import {
   type RequestInput,
 } from "../src/lib/validation";
 
-const cleanups: (() => Promise<void>)[] = [];
+const cleanups: Array<() => Promise<void>> = [];
 afterEach(async () => {
   for (const cleanup of cleanups.splice(0)) await cleanup();
 });
