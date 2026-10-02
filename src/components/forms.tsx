@@ -1,10 +1,11 @@
 "use client"
 
 import Image from "next/image"
-import { useActionState, useState } from "react"
+import { useRouter } from "next/navigation"
+import { useActionState, useState, type FormEvent } from "react"
 import { useFormStatus } from "react-dom"
 import { ArrowRight, ExternalLink, Eye, EyeOff, Save } from "lucide-react"
-import { changePassword, createRequest, createUser, editRequest, login, resetUserPassword, saveFilament, setupAdmin } from "@/app/actions"
+import { changePassword, createRequest, createUser, editRequest, login, resetUserPassword, setupAdmin } from "@/app/actions"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -75,6 +76,36 @@ export function RequestForm({ filaments, initial }: { filaments: Filament[]; ini
 }
 
 export function FilamentForm({ initial }: { initial?: Filament }) {
-  const [state, action] = useActionState(saveFilament, { error: "" })
-  return <form action={action} className="space-y-4">{initial && <Input type="hidden" name="filamentId" value={initial.id} />}<Field label="Filament name" name="name" defaultValue={initial?.name} minLength={2} maxLength={80} placeholder="e.g. PLA Matte — Forest Green" /><div className="space-y-2"><Label htmlFor={`image-${initial?.id ?? "new"}`}>Example photo <span className="font-normal text-muted-foreground">(optional, 5 MB max)</span></Label><Input id={`image-${initial?.id ?? "new"}`} name="image" type="file" accept="image/png,image/jpeg,image/webp" required={false} /></div>{initial && <label className="flex items-center gap-2 text-sm"><Checkbox name="available" value="on" defaultChecked={initial.available} />Available for new requests</label>}<ErrorMessage error={state.error} /><Submit>{initial ? "Save filament" : "Add filament"}</Submit></form>
+  const router = useRouter()
+  const [error, setError] = useState("")
+  const [pending, setPending] = useState(false)
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (pending) return
+    const form = new FormData(event.currentTarget)
+    const image = form.get("image")
+    if (image instanceof File && image.size > 5_000_000) {
+      setError("Image must be 5 MB or smaller.")
+      return
+    }
+    setError("")
+    setPending(true)
+    try {
+      const response = await fetch("/api/admin/filaments", { method: "POST", body: form })
+      const data = response.headers.get("content-type")?.includes("application/json") ? await response.json() as { error?: string } : null
+      if (!response.ok) {
+        setError(data?.error ?? "The upload was blocked before it reached the app. Please try again.")
+        return
+      }
+      router.replace("/admin/filaments?saved=1")
+      router.refresh()
+    } catch {
+      setError("Could not connect to the server. Please try again.")
+    } finally {
+      setPending(false)
+    }
+  }
+
+  return <form onSubmit={submit} className="space-y-4">{initial && <Input type="hidden" name="filamentId" value={initial.id} />}<Field label="Filament name" name="name" defaultValue={initial?.name} minLength={2} maxLength={80} placeholder="e.g. PLA Matte — Forest Green" /><div className="space-y-2"><Label htmlFor={`image-${initial?.id ?? "new"}`}>Example photo <span className="font-normal text-muted-foreground">(optional, 5 MB max)</span></Label><Input id={`image-${initial?.id ?? "new"}`} name="image" type="file" accept="image/png,image/jpeg,image/webp" required={false} /></div>{initial && <label className="flex items-center gap-2 text-sm"><Checkbox name="available" value="on" defaultChecked={initial.available} />Available for new requests</label>}<ErrorMessage error={error} /><Button type="submit" disabled={pending} size="lg">{pending ? "Saving…" : initial ? "Save filament" : "Add filament"}</Button></form>
 }

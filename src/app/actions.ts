@@ -13,7 +13,6 @@ import { hashPassword, newPasswordError, validPassword, verifyPassword } from "@
 import { parseRequestForm, validUsername } from "@/lib/validation"
 import { claimFirstAdmin } from "@/lib/setup"
 import { cancelQueuedRequest, editQueuedRequest, enqueueRequest, moveQueuedRequest, transitionQueuedRequest } from "@/lib/queue"
-import { saveFilamentImage } from "@/lib/filament-image"
 
 type State = { error: string; success?: string }
 const fail = (error: string): State => ({ error })
@@ -88,30 +87,6 @@ export async function resetUserPassword(_state: State, form: FormData): Promise<
   if (result.rowsAffected !== 1) return fail("User was not found.")
   revalidatePath("/admin/users")
   return { error: "", success: "Password reset. Share the new temporary password privately." }
-}
-
-export async function saveFilament(_state: State, form: FormData): Promise<State> {
-  await requireAdmin()
-  const id = String(form.get("filamentId") ?? "")
-  const name = String(form.get("name") ?? "").trim()
-  const file = form.get("image")
-  if (name.length < 2 || name.length > 80) return fail("Filament name must be 2–80 characters.")
-  let imagePath: string | null
-  try {
-    imagePath = file instanceof File ? await saveFilamentImage(file) : null
-  } catch (error) {
-    return fail(error instanceof Error ? error.message : "Image upload failed.")
-  }
-  if (id) {
-    const [existing] = await db.select().from(filaments).where(eq(filaments.id, id)).limit(1)
-    if (!existing) return fail("Filament was not found.")
-    await db.update(filaments).set({ name, available: form.get("available") === "on", imagePath: imagePath ?? existing.imagePath }).where(eq(filaments.id, id))
-  } else {
-    await db.insert(filaments).values({ id: randomUUID(), name, imagePath, available: true, createdAt: new Date() })
-  }
-  revalidatePath("/admin/filaments")
-  revalidatePath("/requests/new")
-  redirect("/admin/filaments?saved=1")
 }
 
 async function checkFilaments(ids: string[], existingRequestId?: string) {
