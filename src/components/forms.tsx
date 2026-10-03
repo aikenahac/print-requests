@@ -4,7 +4,14 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useActionState, useState, type FormEvent } from "react";
 import { useFormStatus } from "react-dom";
-import { ArrowRight, ExternalLink, Eye, EyeOff, Save } from "lucide-react";
+import {
+  ArrowRight,
+  Check,
+  ExternalLink,
+  Eye,
+  EyeOff,
+  Save,
+} from "lucide-react";
 import {
   changePassword,
   createRequest,
@@ -24,10 +31,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { cn } from "cn";
 
 function Submit({ children }: { children: React.ReactNode }) {
@@ -306,6 +313,9 @@ export function RequestForm({
   const [selected, setSelected] = useState<Array<string>>(
     initial?.filamentChoices.map((f) => f.filamentId) ?? [],
   );
+  const [preview, setPreview] = useState<{ name: string; url: string } | null>(
+    null,
+  );
   const [urgent, setUrgent] = useState(initial?.urgent ?? false);
 
   return (
@@ -364,58 +374,93 @@ export function RequestForm({
           {filaments.map((filament) => {
             const isDisabled =
               selected.length >= 4 && !selected.includes(filament.id);
+            const isSelected = selected.includes(filament.id);
+            const imageUrl = filament.imagePath
+              ? `/api/filament-images/${filament.imagePath}`
+              : null;
 
             return (
-              <Tooltip key={filament.id}>
-                <TooltipTrigger
-                  render={
-                    <button
-                      className={cn(
-                        "flex cursor-pointer items-center gap-3 border p-3 text-sm",
-                        isDisabled && "opacity-50",
-                      )}
-                    >
-                      <Checkbox
-                        name="filamentIds"
-                        disabled={isDisabled}
-                        value={filament.id}
-                        defaultChecked={selected.includes(filament.id)}
-                        onCheckedChange={(checked) => {
-                          setSelected((old) =>
-                            checked
-                              ? [...old, filament.id]
-                              : old.filter((id) => id !== filament.id),
-                          );
-                        }}
-                      />
-                      {filament.imagePath && (
-                        <Image
-                          src={`/api/filament-images/${filament.imagePath}`}
-                          alt=""
-                          width={48}
-                          height={48}
-                          unoptimized
-                          className="size-12 border object-cover"
-                        />
-                      )}
-                      <span>{filament.name}</span>
-                    </button>
-                  }
-                ></TooltipTrigger>
-                <TooltipContent>
-                  <Image
-                    src={`/api/filament-images/${filament.imagePath}`}
-                    alt=""
-                    width={512}
-                    height={512}
-                    unoptimized
-                    className="border object-cover"
-                  />
-                </TooltipContent>
-              </Tooltip>
+              <div key={filament.id} className="relative border text-sm">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  aria-pressed={isSelected}
+                  disabled={isDisabled}
+                  onClick={() => {
+                    setSelected((old) =>
+                      old.includes(filament.id)
+                        ? old.filter((id) => id !== filament.id)
+                        : old.length < 4
+                          ? [...old, filament.id]
+                          : old,
+                    );
+                  }}
+                  className="h-auto min-h-18 w-full touch-manipulation justify-start gap-3 rounded-none p-3 text-left text-sm font-normal whitespace-normal"
+                >
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      "flex size-4 shrink-0 items-center justify-center border border-input",
+                      isSelected &&
+                        "border-primary bg-primary text-primary-foreground",
+                    )}
+                  >
+                    {isSelected && <Check className="size-3.5" />}
+                  </span>
+                  {imageUrl && (
+                    <span aria-hidden="true" className="size-12 shrink-0" />
+                  )}
+                  <span>{filament.name}</span>
+                </Button>
+                {isSelected && (
+                  <input type="hidden" name="filamentIds" value={filament.id} />
+                )}
+                {imageUrl && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label={`Preview ${filament.name} filament image`}
+                    onClick={() =>
+                      setPreview({ name: filament.name, url: imageUrl })
+                    }
+                    className="absolute top-1/2 left-10 z-10 size-12 -translate-y-1/2 touch-manipulation rounded-none p-0"
+                  >
+                    <Image
+                      src={imageUrl}
+                      alt=""
+                      width={48}
+                      height={48}
+                      unoptimized
+                      className="size-12 border object-cover"
+                    />
+                  </Button>
+                )}
+              </div>
             );
           })}
         </div>
+        {preview && (
+          <Dialog open onOpenChange={(open) => !open && setPreview(null)}>
+            <DialogContent
+              showCloseButton={false}
+              overlayClassName="!bg-transparent !backdrop-blur-none"
+              className="!w-auto !max-w-[calc(100vw-2rem)] !bg-transparent !p-0 !ring-0 sm:!max-w-[calc(100vw-2rem)]"
+            >
+              <DialogTitle className="sr-only">
+                {preview.name} filament image
+              </DialogTitle>
+              <Image
+                src={preview.url}
+                alt={`Example of ${preview.name} filament`}
+                width={1024}
+                height={1024}
+                unoptimized
+                className="h-auto max-h-[calc(100dvh-2rem)] w-auto max-w-full object-contain"
+              />
+            </DialogContent>
+          </Dialog>
+        )}
         {selected.length > 1 && (
           <label className="flex items-start gap-3 border border-primary/30 bg-primary/5 p-3 text-sm">
             <Checkbox
